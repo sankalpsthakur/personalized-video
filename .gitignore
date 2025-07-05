@@ -1,0 +1,99 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Virtual environments
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Test and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output directories
+output/
+api_output/
+temp/
+tmp/
+test_output/
+final_test/
+prod_output/
+
+# Media files
+*.mp4
+*.wav
+*.mp3
+*.avi
+*.mov
+*.mkv
+*.webm
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing artifacts
+search_*.mp4
+audio_*.wav
+test_*.mp4
+test_*.wav
+*_test.*
+*_temp.*
+personalized_*.mp4
+
+# QC reports
+qc_report*.json
+*_summary.json
+transcription.json
+replacement_report.json
+
+# Temporary files
+*.tmp
+*.temp
+*.bak

@@ -1,0 +1,24 @@
+# Core dependencies
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Audio processing
+openai-whisper>=20230124  # For transcription with word-level timestamps
+librosa>=0.10.0          # For audio analysis
+soundfile>=0.12.1        # For audio I/O
+pyloudnorm>=0.1.0        # For LUFS normalization
+
+# API server
+flask>=2.3.0
+gunicorn>=20.1.0
+requests>=2.31.0
+
+# Optional: TTS providers
+# elevenlabs>=0.2.0      # Professional TTS (uncomment if needed)
+# gtts>=2.3.0           # Google TTS (uncomment if needed)
+
+# Video processing
+opencv-python>=4.8.0     # For video quality checks
+
+# Development
+pytest>=7.3.0
