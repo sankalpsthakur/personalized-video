@@ -40,8 +40,9 @@ test_output/
 final_test/
 prod_output/
 
-# Media files
+# Media files (keep the test video)
 *.mp4
+!VIDEO-2025-07-05-16-44-05.mp4
 *.wav
 *.mp3
 *.avi
