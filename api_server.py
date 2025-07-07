@@ -12,6 +12,9 @@ from pathlib import Path
 import threading
 import queue
 from datetime import datetime
+import requests
+import tempfile
+from urllib.parse import urlparse
 from personalization_pipeline import VideoPersonalizationPipeline
 
 app = Flask(__name__)
@@ -24,7 +27,8 @@ output_dir.mkdir(exist_ok=True)
 
 
 class PersonalizationJob:
-    def __init__(self, job_id, video_path, replacements):
+    def __init__(self, job_id, video_path, replacements, is_temp_video=False, 
+                 enable_lip_sync=True, lip_sync_model="musetalk"):
         self.job_id = job_id
         self.video_path = video_path
         self.replacements = replacements
@@ -33,6 +37,9 @@ class PersonalizationJob:
         self.error = None
         self.created_at = datetime.now()
         self.completed_at = None
+        self.is_temp_video = is_temp_video
+        self.enable_lip_sync = enable_lip_sync
+        self.lip_sync_model = lip_sync_model
 
 
 def process_jobs():
@@ -53,7 +60,9 @@ def process_jobs():
             # Process video
             pipeline = VideoPersonalizationPipeline(
                 job.video_path, 
-                str(job_output_dir)
+                str(job_output_dir),
+                enable_lip_sync=job.enable_lip_sync,
+                lip_sync_model=job.lip_sync_model
             )
             output_path = pipeline.process(job.replacements)
             
@@ -65,6 +74,13 @@ def process_jobs():
             job.status = "failed"
             job.error = str(e)
             job.completed_at = datetime.now()
+        finally:
+            # Clean up temporary video file if needed
+            if job.is_temp_video and os.path.exists(job.video_path):
+                try:
+                    os.unlink(job.video_path)
+                except Exception:
+                    pass  # Ignore cleanup errors
         
         job_status[job.job_id] = job
 
@@ -72,6 +88,60 @@ def process_jobs():
 # Start background worker
 worker_thread = threading.Thread(target=process_jobs, daemon=True)
 worker_thread.start()
+
+
+def download_video_from_url(url: str) -> str:
+    """
+    Download video from URL to a temporary file
+    
+    Args:
+        url: The URL of the video to download
+        
+    Returns:
+        Path to the downloaded video file
+        
+    Raises:
+        Exception: If download fails
+    """
+    try:
+        # Validate URL
+        parsed = urlparse(url)
+        if not parsed.scheme or not parsed.netloc:
+            raise ValueError("Invalid URL format")
+            
+        # Create temporary file with appropriate extension
+        video_extension = os.path.splitext(parsed.path)[1] or '.mp4'
+        temp_fd, temp_path = tempfile.mkstemp(suffix=video_extension, prefix='video_')
+        
+        try:
+            # Download with streaming to handle large files
+            response = requests.get(url, stream=True, timeout=30)
+            response.raise_for_status()
+            
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if not content_type.startswith(('video/', 'application/octet-stream')):
+                raise ValueError(f"Invalid content type: {content_type}")
+            
+            # Write to file in chunks
+            chunk_size = 8192
+            with os.fdopen(temp_fd, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        f.write(chunk)
+                        
+            return temp_path
+            
+        except Exception as e:
+            # Clean up on error
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise e
+            
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Failed to download video: {str(e)}")
+    except Exception as e:
+        raise Exception(f"Download error: {str(e)}")
 
 
 @app.route('/health', methods=['GET'])
@@ -92,7 +162,9 @@ def personalize_video():
         "replacements": {
             "customer_name": "John Smith",
             "destination": "Tokyo"
-        }
+        },
+        "enable_lip_sync": true (optional, default: true),
+        "lip_sync_model": "musetalk" (optional, choices: musetalk, wav2lip, latentsync)
     }
     """
     try:
@@ -113,13 +185,38 @@ def personalize_video():
             video_path = data['video_path']
             if not os.path.exists(video_path):
                 return jsonify({"error": "Video file not found"}), 404
+        elif 'video_url' in data:
+            # Download from URL
+            try:
+                video_path = download_video_from_url(data['video_url'])
+                # Mark this as a temporary file to be cleaned up after processing
+                data['_temp_video_path'] = video_path
+            except Exception as e:
+                return jsonify({"error": f"Failed to download video: {str(e)}"}), 400
         else:
-            # Download from URL (not implemented in this example)
-            return jsonify({"error": "URL download not implemented"}), 501
+            return jsonify({"error": "Either video_path or video_url required"}), 400
         
         # Create job
         job_id = str(uuid.uuid4())
-        job = PersonalizationJob(job_id, video_path, data['replacements'])
+        is_temp = '_temp_video_path' in data
+        enable_lip_sync = data.get('enable_lip_sync', True)
+        lip_sync_model = data.get('lip_sync_model', 'musetalk')
+        
+        # Validate lip sync model
+        valid_models = ['musetalk', 'wav2lip', 'latentsync']
+        if lip_sync_model not in valid_models:
+            return jsonify({
+                "error": f"Invalid lip_sync_model. Choose from: {', '.join(valid_models)}"
+            }), 400
+        
+        job = PersonalizationJob(
+            job_id, 
+            video_path, 
+            data['replacements'], 
+            is_temp_video=is_temp,
+            enable_lip_sync=enable_lip_sync,
+            lip_sync_model=lip_sync_model
+        )
         
         # Add to queue
         job_queue.put(job)

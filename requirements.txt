@@ -13,12 +13,33 @@ flask>=2.3.0
 gunicorn>=20.1.0
 requests>=2.31.0
 
+# Phoneme extraction
+phonemizer>=3.2.0        # For phoneme extraction
+webrtcvad>=2.0.10        # For voice activity detection
+
 # Optional: TTS providers
 # elevenlabs>=0.2.0      # Professional TTS (uncomment if needed)
-# gtts>=2.3.0           # Google TTS (uncomment if needed)
+gtts>=2.3.0             # Google TTS (free option)
 
 # Video processing
 opencv-python>=4.8.0     # For video quality checks
 
+# Lip sync dependencies
+torch>=2.0.0            # For MuseTalk model
+torchvision>=0.15.0     # For video processing
+torchaudio>=2.0.0       # For audio processing
+transformers>=4.30.0    # For Whisper features
+accelerate>=0.20.0      # For model optimization
+imageio>=2.31.0         # For video I/O
+imageio-ffmpeg>=0.4.8   # FFmpeg plugin for imageio
+facenet-pytorch>=2.5.3  # For face detection
+mediapipe>=0.10.0       # For face landmarks
+einops>=0.6.0           # For tensor operations
+omegaconf>=2.3.0        # For configuration
+safetensors>=0.3.0      # For model loading
+
 # Development
 pytest>=7.3.0
+psutil>=5.9.0           # For system monitoring
+matplotlib>=3.5.0       # For visualizations
+seaborn>=0.12.0        # For better plots

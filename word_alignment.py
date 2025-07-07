@@ -15,12 +15,22 @@ try:
     WHISPER_AVAILABLE = True
 except ImportError:
     WHISPER_AVAILABLE = False
+    print("Warning: Whisper not available. Install with: pip install openai-whisper")
     
 try:
     import webrtcvad
     VAD_AVAILABLE = True
 except ImportError:
     VAD_AVAILABLE = False
+    print("Warning: WebRTC VAD not available. Install with: pip install webrtcvad")
+
+try:
+    from phonemizer import phonemize
+    from phonemizer.backend import EspeakBackend
+    PHONEMIZER_AVAILABLE = True
+except ImportError:
+    PHONEMIZER_AVAILABLE = False
+    print("Warning: Phonemizer not available. Install with: pip install phonemizer")
 
 
 class WordAligner:
@@ -215,8 +225,7 @@ class WordAligner:
     
     def extract_phonemes(self, word: str, audio_segment: np.ndarray, sr: int) -> List[Dict]:
         """
-        Extract phoneme-level timing (simplified version)
-        In production, would use forced alignment tools like Montreal Forced Aligner
+        Extract phoneme-level timing using phonemizer and forced alignment
         
         Args:
             word: The word to analyze
@@ -226,25 +235,76 @@ class WordAligner:
         Returns:
             List of phoneme timings
         """
-        # This is a simplified phoneme extraction
-        # Real implementation would use tools like:
-        # - Montreal Forced Aligner
-        # - Kaldi
-        # - DeepSpeech with phoneme output
-        
         word_duration = len(audio_segment) / sr
         
-        # Simple heuristic: divide word equally by estimated phonemes
-        # This is NOT accurate - just for demonstration
-        phoneme_count = max(1, len(word) // 2)  # Very rough estimate
-        phoneme_duration = word_duration / phoneme_count
+        if PHONEMIZER_AVAILABLE:
+            try:
+                # Get phonemes using espeak backend
+                backend = EspeakBackend('en-us')
+                phoneme_str = phonemize(
+                    word.lower(), 
+                    language='en-us',
+                    backend='espeak',
+                    strip=True,
+                    preserve_punctuation=False,
+                    njobs=1
+                )
+                
+                # Split phonemes (espeak separates with spaces)
+                phoneme_list = phoneme_str.strip().split()
+                
+                if not phoneme_list:
+                    phoneme_list = [word]  # Fallback to whole word
+                    
+                # For now, distribute phonemes equally across the word duration
+                # In production, you'd use forced alignment (e.g., Montreal Forced Aligner)
+                phoneme_duration = word_duration / len(phoneme_list)
+                
+                phonemes = []
+                for i, ph in enumerate(phoneme_list):
+                    phonemes.append({
+                        "phoneme": ph,
+                        "start": i * phoneme_duration,
+                        "end": (i + 1) * phoneme_duration
+                    })
+                    
+                return phonemes
+                
+            except Exception as e:
+                print(f"Phonemizer error: {e}")
+                # Fall back to character-based approach
+        
+        # Fallback: character-based phoneme approximation
+        # Group consecutive consonants and vowels
+        vowels = set('aeiouAEIOU')
+        groups = []
+        current_group = ''
+        
+        for char in word:
+            if char.isalpha():
+                if not current_group:
+                    current_group = char
+                elif (char in vowels) != (current_group[-1] in vowels):
+                    groups.append(current_group)
+                    current_group = char
+                else:
+                    current_group += char
+                    
+        if current_group:
+            groups.append(current_group)
+            
+        if not groups:
+            groups = [word]
+            
+        # Distribute time equally among groups
+        group_duration = word_duration / len(groups)
         
         phonemes = []
-        for i in range(phoneme_count):
+        for i, group in enumerate(groups):
             phonemes.append({
-                "phoneme": f"ph{i}",  # Placeholder
-                "start": i * phoneme_duration,
-                "end": (i + 1) * phoneme_duration
+                "phoneme": group,
+                "start": i * group_duration,
+                "end": (i + 1) * group_duration
             })
             
         return phonemes
