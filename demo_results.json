@@ -1,0 +1,38 @@
+[
+  {
+    "model": "vasa1",
+    "resolution": "512x512",
+    "fps": 40,
+    "vram": 16,
+    "features": [
+      "real_time",
+      "emotional_expression"
+    ],
+    "processing_time": 2.33,
+    "success": true
+  },
+  {
+    "model": "emo",
+    "resolution": "512x512",
+    "fps": 25,
+    "vram": 24,
+    "features": [
+      "expressive_portrait",
+      "singing_support"
+    ],
+    "processing_time": 4.03,
+    "success": true
+  },
+  {
+    "model": "gaussian_splatting",
+    "resolution": "512x512",
+    "fps": 100,
+    "vram": 12,
+    "features": [
+      "ultra_fast",
+      "3d_consistent"
+    ],
+    "processing_time": 5.68,
+    "success": true
+  }
+]
