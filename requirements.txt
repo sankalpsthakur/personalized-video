@@ -20,6 +20,7 @@ webrtcvad>=2.0.10        # For voice activity detection
 # Optional: TTS providers
 # elevenlabs>=0.2.0      # Professional TTS (uncomment if needed)
 gtts>=2.3.0             # Google TTS (free option)
+TTS>=0.22.0             # Coqui TTS for voice cloning
 
 # Video processing
 opencv-python>=4.8.0     # For video quality checks

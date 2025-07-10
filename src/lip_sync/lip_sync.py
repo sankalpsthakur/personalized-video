@@ -608,6 +608,11 @@ class LipSyncProcessor:
         """Apply lip sync to video segments"""
         logger.info(f"Applying {self.model_type.value} lip sync to {len(segments)} segments")
         
+        # Check if model is loaded
+        if not hasattr(self, 'model') or self.model is None:
+            logger.error("No lip sync model loaded. Skipping lip sync.")
+            return False
+        
         start_time = time.time()
         
         try:
