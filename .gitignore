@@ -33,12 +33,15 @@ Thumbs.db
 
 # Output directories
 output/
+output_*/
 api_output/
 temp/
 tmp/
 test_output/
 final_test/
 prod_output/
+continuity_analysis*/
+voice_analysis*/
 
 # Media files (keep the test video)
 *.mp4
@@ -98,3 +101,11 @@ replacement_report.json
 *.tmp
 *.temp
 *.bak
+
+# Analysis and benchmark files
+benchmark_data.json
+demo_results.json
+continuity_comparison.csv
+*_comparison.png
+*_analysis.png
+*_summary.png

@@ -1,158 +1,142 @@
 # Video Personalization Pipeline
 
-Automatically find and replace spoken words in videos with personalized content using AI-powered speech recognition and audio processing.
+Automatically personalize videos by replacing spoken content with custom variables using template-based text-to-speech generation and optional lip synchronization.
 
-## Features
+## 🚀 Features
 
-- **Automatic Speech Recognition**: Uses OpenAI Whisper for accurate word-level transcription
-- **Variable Detection**: Automatically finds target phrases in the video
-- **Audio Replacement**: Replaces specific words while maintaining audio continuity
-- **REST API**: Easy integration with any system via HTTP API
-- **Batch Processing**: Process multiple personalizations efficiently
+- **Template-based personalization**: Replace `{customer_name}` and `{destination}` variables in transcript
+- **Professional TTS**: Multi-tier system (Edge-TTS, ElevenLabs, gTTS) with automatic fallback  
+- **Natural speech flow**: Complete transcript regeneration ensures consistent voice
+- **Optional lip sync**: High-quality lip synchronization using state-of-the-art models
+- **Duration matching**: Smart speed adjustment to match original video timing
 
-## Quick Start
+## 📋 Quick Start
 
 ### Installation
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/sankalpsthakur/personalized-video.git
-cd personalized-video
-```
-
-2. Create a virtual environment:
-```bash
+# Clone and setup
+git clone <repository-url>
+cd personalise_video
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-3. Install dependencies:
-```bash
+# Install dependencies
 pip install -r requirements.txt
 ```
 
 ### Basic Usage
 
-#### Command Line
-
 ```bash
-# Personalize a video
-python personalization_pipeline.py video.mp4 \
-  --customer-name "John Smith" \
-  --destination "Paris" \
-  --output-dir output/
+# Personalize video (audio replacement only - fast)
+python main.py input_video.mp4 \
+  --customer-name "Sarah Johnson" \
+  --destination "Tokyo"
+
+# With lip sync (slower but higher quality)
+python main.py input_video.mp4 \
+  --customer-name "Sarah Johnson" \
+  --destination "Tokyo" \
+  --lip-sync
 ```
 
-#### API Server
-
-1. Start the server:
-```bash
-python api_server.py
-```
-
-2. Submit a personalization job:
-```bash
-curl -X POST http://localhost:5000/personalize \
-  -H "Content-Type: application/json" \
-  -d '{
-    "video_path": "/path/to/video.mp4",
-    "replacements": {
-      "customer_name": "Alice Johnson",
-      "destination": "Tokyo"
-    }
-  }'
-```
-
-## Configuration
-
-### Default Variables
-
-The pipeline searches for these default phrases:
-- Customer name: "Anuji", "Anuj ji", "Anuj"
-- Destination: "Bali"
-
-To customize, edit the `search_patterns` in `personalization_pipeline.py`:
+### Python API
 
 ```python
-self.search_patterns = {
-    "customer_name": ["Your Name", "Another Variant"],
-    "destination": ["Your Location"],
-    "custom_var": ["Custom Phrase"]
-}
+from src import VideoPersonalizationPipeline
+
+# Initialize pipeline
+pipeline = VideoPersonalizationPipeline(output_dir="output")
+
+# Personalize video
+output_path = pipeline.create_personalized_video(
+    video_path="input_video.mp4",
+    variables={
+        "customer_name": "Sarah Johnson", 
+        "destination": "Tokyo"
+    },
+    apply_lip_sync=False  # Set to True for lip sync
+)
+
+print(f"Personalized video: {output_path}")
 ```
 
-### Adding Text-to-Speech
+## 🏗️ How It Works
 
-By default, the pipeline replaces audio with silence. To use actual TTS:
+### Template System
 
-1. Install a TTS provider:
+The pipeline uses an exact transcript template with variable placeholders:
+
+```
+"Hi, {customer_name}. I'm Kshitij, your dedicated travel advisor from Thirty Sundays. 
+I'll be helping you plan your {destination} trip. I just wanted to put a face to the 
+name so that you know who you're speaking with..."
+```
+
+### TTS Generation
+
+1. **Edge-TTS** (Microsoft): Professional quality, free
+2. **ElevenLabs**: Premium voices (requires API key)  
+3. **gTTS** (Google): Basic quality fallback
+
+### Processing Steps
+
+1. Extract original video duration for timing reference
+2. Replace template variables with provided values
+3. Generate complete TTS audio using best available engine
+4. Apply gentle speed adjustment to match original timing (±20% max)
+5. Optionally apply lip sync to entire video
+6. Output final personalized video
+
+## ⚙️ Configuration
+
+### Environment Variables (Optional)
+
 ```bash
-pip install gtts  # For Google TTS
-# or
-pip install elevenlabs  # For ElevenLabs
+# For premium TTS quality
+export ELEVENLABS_API_KEY="your-elevenlabs-key"
 ```
 
-2. Modify `generate_replacement_audio` in `personalization_pipeline.py` to use TTS instead of silence.
+### Custom Templates
 
-## Project Structure
+Edit `src/templates.py` to customize the transcript:
 
-```
-├── personalization_pipeline.py  # Main pipeline orchestrator
-├── api_server.py               # REST API server
-├── client_example.py           # Example API client
-├── word_alignment.py           # Whisper-based word alignment
-├── audio_processor.py          # Audio processing utilities
-├── video_processor.py          # Video manipulation tools
-├── quality_control.py          # QC and validation
-└── requirements.txt            # Python dependencies
-```
+```python
+TRANSCRIPT_TEMPLATE = "Hello {customer_name}, welcome to {company}..."
 
-## API Reference
-
-### POST /personalize
-
-Submit a video for personalization.
-
-**Request:**
-```json
-{
-  "video_path": "/path/to/video.mp4",
-  "replacements": {
-    "customer_name": "John Doe",
-    "destination": "London"
-  }
+DEFAULT_VARIABLES = {
+    "customer_name": "Anuj Ji",
+    "company": "Thirty Sundays"
 }
 ```
 
-**Response:**
-```json
-{
-  "job_id": "uuid",
-  "status": "queued",
-  "message": "Video personalization job created"
-}
-```
+## 🎯 Quality Features
 
-### GET /status/{job_id}
+- **No audio artifacts**: Complete TTS regeneration eliminates stitching issues
+- **Consistent voice**: Same TTS engine throughout entire video
+- **Duration preservation**: Smart timing adjustment maintains lip sync compatibility
+- **Professional quality**: Multi-tier TTS system ensures best possible voice quality
 
-Check job status.
+## 🛠️ Requirements
 
-### GET /download/{job_id}
-
-Download the personalized video.
-
-## Requirements
-
-- Python 3.8+
+- Python 3.8+ (Python 3.13+ supported)
 - FFmpeg (must be installed separately)
-- 2GB+ RAM for Whisper model
+- 2GB+ RAM for processing
+- GPU recommended for lip sync (4-6GB VRAM)
 
-## Limitations
+## 📁 Project Structure
 
-- Currently replaces audio with silence (TTS integration available but not enabled by default)
-- Best results with clear speech and minimal background noise
-- Processing time depends on video length and system resources
+```
+├── src/
+│   ├── pipeline.py          # Main VideoPersonalizationPipeline class
+│   ├── templates.py         # Transcript templates and variables
+│   ├── lip_sync/           # Lip synchronization models
+│   └── utils/              # Logging and utilities
+├── main.py                 # Command-line interface
+├── requirements.txt        # Dependencies
+└── README.md              # This file
+```
 
-## License
+## 📄 License
 
 MIT License - See LICENSE file for details
